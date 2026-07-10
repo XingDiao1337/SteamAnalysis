@@ -1,0 +1,145 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+        x:Class="SteamAnalysisAvalonia.MainWindow"
+        Title="SteamAnalysis"
+        Width="900" Height="600"
+        WindowStartupLocation="CenterScreen"
+        TransparencyLevelHint="Mica, AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+    
+    <Window.Styles>
+        <Style Selector="Border.GlassCard">
+            <Setter Property="Background" Value="#15FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#30FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="25"/>
+            <Setter Property="BoxShadow" Value="0 8 32 0 #20000000"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.GlassCard:pointerover">
+            <Setter Property="Background" Value="#25FFFFFF"/>
+        </Style>
+        
+        <Style Selector="Button.GlassButton">
+            <Setter Property="Background" Value="#20FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#40FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="15,12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.2"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.GlassButton:pointerover">
+            <Setter Property="Background" Value="#35FFFFFF"/>
+            <Setter Property="RenderTransform" Value="scale(1.02)"/>
+        </Style>
+        <Style Selector="Button.GlassButton:pressed">
+            <Setter Property="Background" Value="#15FFFFFF"/>
+            <Setter Property="RenderTransform" Value="scale(0.98)"/>
+        </Style>
+
+        <Style Selector="TextBox.GlassInput">
+            <Setter Property="Background" Value="#10FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#30FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="CaretBrush" Value="White"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid Margin="0,30,0,0"> <!-- Leave space for title bar -->
+        <TextBlock Text="SteamAnalysis" FontSize="32" FontWeight="Bold" Foreground="White" Margin="40,0,0,0" VerticalAlignment="Top"/>
+        
+        <Grid ColumnDefinitions="*,*" Margin="0,60,0,0">
+            <!-- Left Panel: Actions -->
+            <StackPanel Grid.Column="0" Margin="40,0,20,40" Spacing="25">
+                
+                <Border Classes="GlassCard">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="账号解析" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBox Name="KeyTextBox" Classes="GlassInput" Watermark="请输入卡密..." />
+                        <Button Classes="GlassButton" Content="一键解析卡密" HorizontalAlignment="Stretch" Click="ParseKey_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="GlassCard">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="快捷操作" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <Button Classes="GlassButton" Content="一键登录到 Steam" HorizontalAlignment="Stretch" Click="LoginSteam_Click"/>
+                        <Button Classes="GlassButton" Content="清除创意工坊订阅" HorizontalAlignment="Stretch" Click="ClearWorkshop_Click"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Right Panel: Info -->
+            <StackPanel Grid.Column="1" Margin="20,0,40,40" Spacing="25">
+                <Border Classes="GlassCard" MinHeight="350">
+                    <StackPanel Spacing="20">
+                        <TextBlock Text="账号信息" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        
+                        <Grid ColumnDefinitions="Auto,*" Margin="0,10,0,0">
+                            <!-- Avatar -->
+                            <Border Grid.Column="0" Width="100" Height="100" CornerRadius="50" ClipToBounds="True" 
+                                    VerticalAlignment="Top" Margin="0,0,25,0"
+                                    BorderBrush="#40FFFFFF" BorderThickness="2" BoxShadow="0 8 20 0 #40000000">
+                                <Image Name="AvatarImage" Stretch="UniformToFill"/>
+                            </Border>
+
+                            <!-- Info Details -->
+                            <Grid Grid.Column="1" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" VerticalAlignment="Center">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="用户名：" Foreground="#B0FFFFFF" Margin="0,6,15,6"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Name="UserNameTextBlock" Foreground="White" Margin="0,6,0,6" FontWeight="SemiBold"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="SteamID：" Foreground="#B0FFFFFF" Margin="0,6,15,6"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Name="SteamIdTextBlock" Foreground="White" Margin="0,6,0,6" FontWeight="SemiBold"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="当前状态：" Foreground="#B0FFFFFF" Margin="0,6,15,6"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Name="CurrentStateTextBlock" Foreground="White" Margin="0,6,0,6" FontWeight="SemiBold"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="VAC封禁：" Foreground="#B0FFFFFF" Margin="0,6,15,6"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" Name="VacBannedTextBlock" Foreground="White" Margin="0,6,0,6" FontWeight="SemiBold"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="交易封禁：" Foreground="#B0FFFFFF" Margin="0,6,15,6"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1" Name="TradeBanTextBlock" Foreground="White" Margin="0,6,0,6" FontWeight="SemiBold"/>
+
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="社区限制：" Foreground="#B0FFFFFF" Margin="0,6,15,6"/>
+                                <TextBlock Grid.Row="5" Grid.Column="1" Name="LimitedAccountTextBlock" Foreground="White" Margin="0,6,0,6" FontWeight="SemiBold"/>
+
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="竞技冷却：" Foreground="#B0FFFFFF" Margin="0,6,15,6"/>
+                                <TextBlock Grid.Row="6" Grid.Column="1" Name="CooldownTextBlock" Foreground="White" Margin="0,6,0,6" FontWeight="SemiBold" TextWrapping="Wrap"/>
+
+                                <TextBlock Grid.Row="7" Grid.Column="0" Text="优先分数：" Foreground="#B0FFFFFF" Margin="0,6,15,6"/>
+                                <TextBlock Grid.Row="7" Grid.Column="1" Name="CsScoreTextBlock" Foreground="White" Margin="0,6,0,6" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                            </Grid>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+        
+        <!-- Toast Notification Area (Overlay) -->
+        <Border Name="InfoNotification" IsVisible="False" 
+                VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,40"
+                Background="#CC000000" BorderBrush="#50FFFFFF" BorderThickness="1" CornerRadius="12" Padding="20,12"
+                BoxShadow="0 10 30 0 #60000000">
+            <TextBlock Name="InfoMessageText" Text="提示信息" Foreground="White" FontWeight="SemiBold" FontSize="15"/>
+        </Border>
+    </Grid>
+</Window>
