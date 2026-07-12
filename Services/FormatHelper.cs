@@ -1,13 +1,7 @@
 using System.IO;
 using System.Net.Http;
-
-
-using System.IO;
-using System.Net.Http;
-
-
-using Avalonia;
-using Avalonia.Media;
+using System.Collections.Generic;
+using System;
 using SteamEyaWinUI.Localization;
 
 namespace SteamEyaWinUI.Services;
@@ -58,9 +52,9 @@ internal static class FormatHelper
     public static string DescribePenaltyReason(uint? reason) => reason switch
     {
         null => "",
-        7 => Loc.T("Format_Penalty_Abandon"),
+        7 => "放弃比赛",
         22 => "vaclive",
-        _ => Loc.Tf("Format_Penalty_Reason_Format", reason.Value)
+        _ => $"原因 {reason.Value}"
     };
 
     /// <param name="seconds">冷却剩余秒数；null 表示 GC 未下发（未知）。</param>
@@ -76,7 +70,7 @@ internal static class FormatHelper
         // 兜底拦下，避免历史里早先存下的坏值仍显示成“49707天…”。
         if (seconds == 0 || seconds > int.MaxValue)
         {
-            return Loc.T("Format_Cooldown_None");
+            return "无冷却";
         }
 
         var duration = FormatDuration(seconds.Value);
@@ -89,8 +83,8 @@ internal static class FormatHelper
     public static string FormatGcVacText(int? vacBanned, string unknownText) => vacBanned switch
     {
         null => unknownText,
-        0 => Loc.T("Format_GcVac_None"),
-        _ => Loc.T("Format_GcVac_Flagged")
+        0 => "正常",
+        _ => "有封禁 (GC)"
     };
 
     public static string FormatCooldownStatusText(
@@ -131,26 +125,6 @@ internal static class FormatHelper
             : $"{bytes.Value / 1024d:F0} KB";
     }
 
-    public static IBrush GetSeverityBrush(InfoBarSeverity severity)
-    {
-        string resourceKey = severity switch
-        {
-            InfoBarSeverity.Informational => "SystemFillColorAttentionBrush",
-            InfoBarSeverity.Success => "SystemFillColorSuccessBrush",
-            InfoBarSeverity.Warning => "SystemFillColorCautionBrush",
-            InfoBarSeverity.Error => "SystemFillColorCriticalBrush",
-            _ => "TextFillColorPrimaryBrush"
-        };
 
-        if (Application.Current != null && Application.Current.Resources.TryGetValue(resourceKey, out var res))
-        {
-            if (res is IBrush brush)
-            {
-                return brush;
-            }
-        }
-
-        return Brushes.Transparent;
-    }
 }
 

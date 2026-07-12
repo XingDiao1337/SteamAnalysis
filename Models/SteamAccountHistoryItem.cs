@@ -1,15 +1,9 @@
-﻿using System.IO;
-using System.Net.Http;
-
-using Avalonia.Media.Imaging;
+using System;
 using System.IO;
 using System.Net.Http;
-
-using Avalonia.Media.Imaging;
-using System.ComponentModel;
-using System.IO;
 using System.Text.Json.Serialization;
-
+using System.Drawing;
+using System.ComponentModel;
 
 using SteamEyaWinUI.Localization;
 using SteamEyaWinUI.Services;
@@ -197,15 +191,14 @@ public sealed partial class SteamAccountHistoryItem : INotifyPropertyChanged
     // 进程级头像缓存：列表重建会换新实例，仅靠实例字段无法跨重建复用，必须用静态字典才真正止血。
     // 键 = 完整路径 + 最后写入时间，头像更新（重新下载覆盖同名文件）后键变化自动失效。
     // 仅 UI 线程访问（Bitmap 也只能在 UI 线程使用），普通 Dictionary 即可。
-    private static readonly Dictionary<string, Bitmap> AvatarCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, Image> AvatarCache = new(StringComparer.OrdinalIgnoreCase);
 
-    // PersonPicture 最大显示 92px（历史详情），按 2 倍留 DPI 余量解码。
     private const int AvatarDecodePixelWidth = 184;
 
-    private Bitmap? _avatarImage;
+    private Image? _avatarImage;
 
     [JsonIgnore]
-    public Bitmap? AvatarImage
+    public Image? AvatarImage
     {
         get
         {
@@ -226,7 +219,7 @@ public sealed partial class SteamAccountHistoryItem : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AvatarImage)));
     }
 
-    private Bitmap? LoadAvatarImage()
+    private Image? LoadAvatarImage()
     {
         var localPath = AvatarPath;
         if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
@@ -239,8 +232,6 @@ public sealed partial class SteamAccountHistoryItem : INotifyPropertyChanged
                     return cached;
                 }
 
-                // 从字节解码而非 new Bitmap(Uri)：后者会长期持有文件句柄，导致删除账号时头像删不掉。
-                // 用 FileShare.ReadWrite 共享读：即便另一线程正在替换该头像文件，也不抛共享冲突导致头像闪失。
                 byte[] bytes;
                 using (var fileStream = new FileStream(
                     localPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
@@ -249,7 +240,8 @@ public sealed partial class SteamAccountHistoryItem : INotifyPropertyChanged
                     fileStream.ReadExactly(bytes);
                 }
 
-                using var ms = new MemoryStream(bytes); var bitmap = Bitmap.DecodeToWidth(ms, AvatarDecodePixelWidth);
+                using var ms = new MemoryStream(bytes); 
+                var bitmap = Image.FromStream(ms);
 
                 AvatarCache[cacheKey] = bitmap;
                 return bitmap;

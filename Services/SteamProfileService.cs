@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Net.Http;
 
 
@@ -33,7 +33,8 @@ internal sealed partial class SteamProfileService
     {
         AutomaticDecompression = DecompressionMethods.All,
         UseCookies = false,
-        AllowAutoRedirect = false
+        AllowAutoRedirect = false,
+        Proxy = System.Net.WebRequest.GetSystemWebProxy()
     })
     {
         Timeout = TimeSpan.FromSeconds(60)

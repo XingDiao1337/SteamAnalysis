@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Net.Http;
 
 
@@ -103,7 +103,7 @@ internal sealed class SteamCmClient : IAsyncDisposable
 
     private ClientWebSocket? _socket;
     private Task? _receiveTask;
-    private Timer? _heartbeatTimer;
+    private System.Threading.Timer? _heartbeatTimer;
     private TaskCompletionSource<LogonResponse>? _logonResponse;
     private Action<SteamGcClientMessage>? _gcMessageTap;
     private int _sessionId;
@@ -383,6 +383,7 @@ internal sealed class SteamCmClient : IAsyncDisposable
     private async Task ConnectAsync(string endpoint, CancellationToken cancellationToken)
     {
         _socket = new ClientWebSocket();
+        _socket.Options.Proxy = System.Net.WebRequest.GetSystemWebProxy();
         _socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(30);
 
         // 不回包的 CM 会让 ConnectAsync 挂起数分钟，必须按单个 endpoint 限时；
@@ -430,7 +431,7 @@ internal sealed class SteamCmClient : IAsyncDisposable
         if (logon.HeartbeatSeconds > 0)
         {
             var interval = TimeSpan.FromSeconds(logon.HeartbeatSeconds);
-            _heartbeatTimer = new Timer(
+            _heartbeatTimer = new System.Threading.Timer(
                 _ => _ = SendHeartbeatAsync(),
                 null,
                 interval,

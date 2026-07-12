@@ -28,7 +28,7 @@ internal sealed class CsPremierScoreService
     private static readonly TimeSpan GcReconnectDelay = TimeSpan.FromSeconds(2.5);
     private static readonly TimeSpan HelloTotalBudget = TimeSpan.FromSeconds(100);
 
-    private static readonly HttpClient HttpClient = new()
+    private static readonly HttpClient HttpClient = new(new HttpClientHandler { Proxy = System.Net.WebRequest.GetSystemWebProxy() })
     {
         Timeout = TimeSpan.FromSeconds(30)
     };
@@ -36,6 +36,7 @@ internal sealed class CsPremierScoreService
     public async Task<CsPremierScoreResult> QueryAsync(
         string refreshToken,
         string steamId,
+        IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
         if (!ulong.TryParse(steamId, CultureInfo.InvariantCulture, out var steamId64))
@@ -44,14 +45,20 @@ internal sealed class CsPremierScoreService
         }
 
         var accountId = CsGcSession.GetAccountId(steamId64);
+        
+        progress?.Report("正在连接 Steam CM 服务器...");
         await using var cmClient = new SteamCmClient(HttpClient);
         await cmClient.ConnectAndLogOnAsync(refreshToken, steamId, cancellationToken);
+        progress?.Report("已登录 Steam CM 服务器");
 
         try
         {
+            progress?.Report("正在启动 CS2 游戏会话...");
             var helloTask = WaitForMatchmakingHelloAsync(cmClient, cancellationToken);
             await cmClient.SetGamesPlayedAsync([CsGcSession.Cs2AppId], cancellationToken);
             await CsGcSession.ConnectAsync(cmClient, cancellationToken);
+            
+            progress?.Report("等待游戏协调器 (GC) 响应...");
 
             // 冷却/VAC 只能从 GC 的 MatchmakingGC2ClientHello(9110) 拿：PlayersProfile 对自己
             // 账号的 penalty 字段永远为空。9110 waiter 已在进 730 前挂好，避免 welcome 阶段
@@ -68,6 +75,7 @@ internal sealed class CsPremierScoreService
                 TimeSpan.FromSeconds(30),
                 cancellationToken);
 
+            progress?.Report("正在拉取账号竞技等级和优先分数...");
             await cmClient.SendGcProtobufMessageAsync(
                 CsGcSession.Cs2AppId,
                 ClientRequestPlayersProfile,
@@ -100,6 +108,7 @@ internal sealed class CsPremierScoreService
 
                 try
                 {
+                    progress?.Report($"[重试 {cycle-1}/{MaxHelloCycles-1}] 重新连接 GC 中...");
                     await cmClient.SetGamesPlayedAsync([], cancellationToken);
                     await Task.Delay(GcReconnectDelay, cancellationToken);
                     helloTask = WaitForMatchmakingHelloAsync(cmClient, cancellationToken);
