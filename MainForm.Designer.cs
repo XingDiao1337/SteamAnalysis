@@ -21,6 +21,7 @@ namespace SteamAnalysisAvalonia
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.btnClearWorkshop = new System.Windows.Forms.Button();
             this.btnLogin = new System.Windows.Forms.Button();
+            this.chkKeepAccounts = new System.Windows.Forms.CheckBox();
             this.grpBasic = new System.Windows.Forms.GroupBox();
             this.grpCs2 = new System.Windows.Forms.GroupBox();
             this.lblMemberSince = new System.Windows.Forms.Label();
@@ -95,11 +96,12 @@ namespace SteamAnalysisAvalonia
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.chkKeepAccounts);
             this.groupBox2.Controls.Add(this.btnClearWorkshop);
             this.groupBox2.Controls.Add(this.btnLogin);
             this.groupBox2.Location = new System.Drawing.Point(12, 132);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(260, 151);
+            this.groupBox2.Size = new System.Drawing.Size(260, 170);
             this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "快捷操作";
@@ -123,6 +125,17 @@ namespace SteamAnalysisAvalonia
             this.btnLogin.Text = "一键登录到 Steam";
             this.btnLogin.UseVisualStyleBackColor = true;
             this.btnLogin.Click += new System.EventHandler(this.btnLogin_Click);
+            // 
+            // chkKeepAccounts
+            // 
+            this.chkKeepAccounts.AutoSize = true;
+            this.chkKeepAccounts.Location = new System.Drawing.Point(10, 135);
+            this.chkKeepAccounts.Name = "chkKeepAccounts";
+            this.chkKeepAccounts.Size = new System.Drawing.Size(240, 21);
+            this.chkKeepAccounts.TabIndex = 4;
+            this.chkKeepAccounts.Text = "保留其他账号数据免密 (需写注册表)";
+            this.chkKeepAccounts.UseVisualStyleBackColor = true;
+            this.chkKeepAccounts.Checked = true;
             // 
             // grpBasic
             this.grpBasic.Controls.Add(this.lblVac);
@@ -362,6 +375,7 @@ namespace SteamAnalysisAvalonia
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.Button btnClearWorkshop;
         private System.Windows.Forms.Button btnLogin;
+        private System.Windows.Forms.CheckBox chkKeepAccounts;
         private System.Windows.Forms.GroupBox grpBasic;
         private System.Windows.Forms.GroupBox grpCs2;
         private System.Windows.Forms.PictureBox picAvatar;

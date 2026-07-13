@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Net.Http;
 
 
@@ -20,7 +20,7 @@ internal sealed class SteamLoginService
     private readonly SteamLoginCacheService _loginCacheService = new();
     private readonly AccountHistoryService _accountHistoryService = new();
 
-    public LoginResult Login(string accountName, string eyaToken, IProgress<string>? progress = null)
+    public LoginResult Login(string accountName, string eyaToken, bool keepOtherAccounts = true, IProgress<string>? progress = null)
     {
         AppLog.Info(
             $"==== 开始上号：账号=\"{accountName}\"  OS={Environment.OSVersion}  64位进程={Environment.Is64BitProcess} ====");
@@ -54,7 +54,8 @@ internal sealed class SteamLoginService
                 accountName,
                 token.SteamId,
                 encryptedJwt,
-                accountCrc32);
+                accountCrc32,
+                keepOtherAccounts);
 
             progress?.Report(Loc.T("Steam_Progress_StartingSteam"));
             _steamProcessService.LaunchSteamWithLogin(paths, accountName);

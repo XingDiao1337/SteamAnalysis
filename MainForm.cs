@@ -165,7 +165,8 @@ namespace SteamAnalysisAvalonia
                 var validationResult = AppState.JwtTokenService.Validate(jwt);
                 string steamId = validationResult.SteamId;
 
-                var result = await Task.Run(() => AppState.LoginService.Login(_currentAccount.User, jwt));
+                bool keepOtherAccounts = chkKeepAccounts.Checked;
+                var result = await Task.Run(() => AppState.LoginService.Login(_currentAccount.User, jwt, keepOtherAccounts));
 
                 UpdateStatus($"登录成功，凭证过期时间: {result.ExpiresAt:yyyy-MM-dd HH:mm}");
                 MessageBox.Show($"登录成功！\n凭证过期时间: {result.ExpiresAt}", "登录成功", MessageBoxButtons.OK, MessageBoxIcon.Information);

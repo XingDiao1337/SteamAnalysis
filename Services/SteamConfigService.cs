@@ -39,15 +39,19 @@ internal sealed class SteamConfigService
         string accountName,
         string steamId,
         string encryptedJwt,
-        string accountCrc32)
+        string accountCrc32,
+        bool keepOtherAccounts = true)
     {
         Directory.CreateDirectory(paths.ConfigPath);
 
         var configPath = Path.Combine(paths.ConfigPath, "config.vdf");
         var loginUsersPath = Path.Combine(paths.ConfigPath, "loginusers.vdf");
 
-        UpdateConfigVdf(configPath, accountName, steamId);
-        UpdateRegistryAutoLogin(accountName);
+        UpdateConfigVdf(configPath, accountName, steamId, keepOtherAccounts);
+        if (keepOtherAccounts)
+        {
+            UpdateRegistryAutoLogin(accountName);
+        }
         AppLog.Info($"已处理 config.vdf（{FileLength(configPath)} 字节）：\"{configPath}\"");
 
         UpdateLoginUsersVdf(loginUsersPath, accountName, steamId);
@@ -64,7 +68,7 @@ internal sealed class SteamConfigService
         var configPath = Path.Combine(paths.ConfigPath, "config.vdf");
         var loginUsersPath = Path.Combine(paths.ConfigPath, "loginusers.vdf");
 
-        UpdateConfigVdf(configPath, account.AccountName, account.SteamId);
+        UpdateConfigVdf(configPath, account.AccountName, account.SteamId, true);
         UpdateRegistryAutoLogin(account.AccountName);
         AppLog.Info($"已恢复 config.vdf（{FileLength(configPath)} 字节）：\"{configPath}\"");
 
@@ -98,11 +102,11 @@ internal sealed class SteamConfigService
         }
     }
 
-    private static void UpdateConfigVdf(string path, string accountName, string steamId)
+    private static void UpdateConfigVdf(string path, string accountName, string steamId, bool keepOtherAccounts)
     {
-        // 修复：不要每次覆盖 config.vdf，否则会清除其他账号的保存密码和用户设置！
+        // 修复：如果不清除其他账号，则不要每次覆盖 config.vdf，否则会清除其他账号的保存密码和用户设置！
         // 仅在 config.vdf 完全不存在时，才写入一个最小化模板。
-        if (File.Exists(path) && FileLength(path) > 0)
+        if (keepOtherAccounts && File.Exists(path) && FileLength(path) > 0)
         {
             return;
         }
