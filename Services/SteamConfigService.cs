@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Net.Http;
 
 
@@ -47,7 +47,8 @@ internal sealed class SteamConfigService
         var loginUsersPath = Path.Combine(paths.ConfigPath, "loginusers.vdf");
 
         UpdateConfigVdf(configPath, accountName, steamId);
-        AppLog.Info($"已写入 config.vdf（{FileLength(configPath)} 字节）：\"{configPath}\"");
+        UpdateRegistryAutoLogin(accountName);
+        AppLog.Info($"已处理 config.vdf（{FileLength(configPath)} 字节）：\"{configPath}\"");
 
         UpdateLoginUsersVdf(loginUsersPath, accountName, steamId);
         AppLog.Info($"已写入 loginusers.vdf（{FileLength(loginUsersPath)} 字节）：\"{loginUsersPath}\"");
@@ -64,6 +65,7 @@ internal sealed class SteamConfigService
         var loginUsersPath = Path.Combine(paths.ConfigPath, "loginusers.vdf");
 
         UpdateConfigVdf(configPath, account.AccountName, account.SteamId);
+        UpdateRegistryAutoLogin(account.AccountName);
         AppLog.Info($"已恢复 config.vdf（{FileLength(configPath)} 字节）：\"{configPath}\"");
 
         RestoreLoginUsersVdf(loginUsersPath, account);
@@ -98,14 +100,13 @@ internal sealed class SteamConfigService
 
     private static void UpdateConfigVdf(string path, string accountName, string steamId)
     {
-        // 对齐 SteamEYA_GUI.exe（sub_140003640）：config.vdf 从零生成、整体覆盖，
-        // 绝不读取/合并旧文件。旧实现用 LoadOrEmpty 读出用户原有 config.vdf
-        // （常有 20KB+），再经我们手写的 VDF 解析/序列化往返一遍——只要某处结构
-        // 往返后被破坏，Steam 启动时读不动 config.vdf 就会把它重置，连带忽略我们
-        // 写入 loginusers.vdf/local.vdf 的自动登录，停在登录界面。这正是「上号流程
-        // 全部成功、Steam 进程也起来了，却没自动登录」且只在部分机器复现的根因
-        // （取决于该机 config.vdf 里有没有我们解析器处理不好的内容）。参考二进制
-        // 干脆只写下面这三项最小模板，彻底规避往返破坏。
+        // 修复：不要每次覆盖 config.vdf，否则会清除其他账号的保存密码和用户设置！
+        // 仅在 config.vdf 完全不存在时，才写入一个最小化模板。
+        if (File.Exists(path) && FileLength(path) > 0)
+        {
+            return;
+        }
+
         var config = new Dictionary<string, object>(StringComparer.Ordinal);
         var steam = EnsurePath(config, "InstallConfigStore", "Software", "Valve", "Steam");
 
@@ -119,6 +120,24 @@ internal sealed class SteamConfigService
         };
 
         VdfDocument.Save(path, config);
+    }
+
+    private static void UpdateRegistryAutoLogin(string accountName)
+    {
+        try
+        {
+            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default);
+            using var key = baseKey.CreateSubKey(@"Software\Valve\Steam");
+            if (key != null)
+            {
+                key.SetValue("AutoLoginUser", accountName, RegistryValueKind.String);
+                key.SetValue("RememberPassword", 1, RegistryValueKind.DWord);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn($"设置注册表自动登录失败: {ex.Message}");
+        }
     }
 
     private static void UpdateLoginUsersVdf(string path, string accountName, string steamId)
