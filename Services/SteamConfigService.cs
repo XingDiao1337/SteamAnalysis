@@ -173,27 +173,80 @@ internal sealed class SteamConfigService
 
     private static void UpdateLoginUsersVdf(string path, string accountName, string steamId)
     {
-        var loginUsers = VdfDocument.LoadOrEmpty(path);
-        var users = EnsureObject(loginUsers, "users");
-
-        foreach (var user in users.Values.OfType<Dictionary<string, object>>())
+        if (!File.Exists(path) || FileLength(path) == 0)
         {
-            user["MostRecent"] = "0";
+            var loginUsers = new Dictionary<string, object>(StringComparer.Ordinal);
+            var users = EnsureObject(loginUsers, "users");
+            users[steamId] = new Dictionary<string, object>
+            {
+                ["AccountName"] = accountName,
+                ["PersonaName"] = accountName,
+                ["RememberPassword"] = "1",
+                ["WantsOfflineMode"] = "0",
+                ["SkipOfflineModeWarning"] = "0",
+                ["AllowAutoLogin"] = "1",
+                ["MostRecent"] = "1",
+                ["Timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds().ToString()
+            };
+            VdfDocument.Save(path, loginUsers);
+            return;
         }
 
-        users[steamId] = new Dictionary<string, object>
+        try
         {
-            ["AccountName"] = accountName,
-            ["PersonaName"] = accountName,
-            ["RememberPassword"] = "1",
-            ["WantsOfflineMode"] = "0",
-            ["SkipOfflineModeWarning"] = "0",
-            ["AllowAutoLogin"] = "1",
-            ["MostRecent"] = "1",
-            ["Timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds().ToString()
-        };
+            string text = File.ReadAllText(path, System.Text.Encoding.UTF8);
 
-        VdfDocument.Save(path, loginUsers);
+            text = System.Text.RegularExpressions.Regex.Replace(
+                text,
+                @"""MostRecent""\s*""1""",
+                "\"MostRecent\"\t\t\"0\"",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var match = System.Text.RegularExpressions.Regex.Match(text, @"(?i)""users""\s*\{");
+            if (match.Success)
+            {
+                int insertPos = match.Index + match.Length;
+                string userPattern = $@"""{steamId}""\s*\{{([^}}]*)\}}";
+                string timestamp = DateTimeOffset.Now.ToUnixTimeSeconds().ToString();
+
+                if (System.Text.RegularExpressions.Regex.IsMatch(text, userPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                {
+                    text = System.Text.RegularExpressions.Regex.Replace(
+                        text,
+                        userPattern,
+                        m => {
+                            string inner = m.Groups[1].Value;
+                            inner = System.Text.RegularExpressions.Regex.Replace(inner, @"(?i)""RememberPassword""\s*""[^""]*""", "\"RememberPassword\"\t\t\"1\"");
+                            inner = System.Text.RegularExpressions.Regex.Replace(inner, @"(?i)""AllowAutoLogin""\s*""[^""]*""", "\"AllowAutoLogin\"\t\t\"1\"");
+                            inner = System.Text.RegularExpressions.Regex.Replace(inner, @"(?i)""MostRecent""\s*""[^""]*""", "\"MostRecent\"\t\t\"1\"");
+                            return $"\"{steamId}\"\n\t\t{{{inner}}}";
+                        }, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                }
+                else
+                {
+                    string injection = $"\n\t\t\"{steamId}\"\n\t\t{{\n\t\t\t\"AccountName\"\t\t\"{accountName}\"\n\t\t\t\"PersonaName\"\t\t\"{accountName}\"\n\t\t\t\"RememberPassword\"\t\t\"1\"\n\t\t\t\"WantsOfflineMode\"\t\t\"0\"\n\t\t\t\"SkipOfflineModeWarning\"\t\t\"0\"\n\t\t\t\"AllowAutoLogin\"\t\t\"1\"\n\t\t\t\"MostRecent\"\t\t\"1\"\n\t\t\t\"Timestamp\"\t\t\"{timestamp}\"\n\t\t}}";
+                    text = text.Insert(insertPos, injection);
+                }
+                File.WriteAllText(path, text, new System.Text.UTF8Encoding(false));
+            }
+            else
+            {
+                var loginUsers = VdfDocument.LoadOrEmpty(path);
+                var users = EnsureObject(loginUsers, "users");
+                foreach (var user in users.Values.OfType<Dictionary<string, object>>()) user["MostRecent"] = "0";
+                users[steamId] = new Dictionary<string, object> { ["AccountName"] = accountName, ["PersonaName"] = accountName, ["RememberPassword"] = "1", ["WantsOfflineMode"] = "0", ["SkipOfflineModeWarning"] = "0", ["AllowAutoLogin"] = "1", ["MostRecent"] = "1", ["Timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds().ToString() };
+                VdfDocument.Save(path, loginUsers);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn($"Safe injection to loginusers.vdf failed: {ex.Message}");
+            var loginUsers = VdfDocument.LoadOrEmpty(path);
+            var users = EnsureObject(loginUsers, "users");
+            foreach (var user in users.Values.OfType<Dictionary<string, object>>()) user["MostRecent"] = "0";
+            users[steamId] = new Dictionary<string, object> { ["AccountName"] = accountName, ["PersonaName"] = accountName, ["RememberPassword"] = "1", ["WantsOfflineMode"] = "0", ["SkipOfflineModeWarning"] = "0", ["AllowAutoLogin"] = "1", ["MostRecent"] = "1", ["Timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds().ToString() };
+            VdfDocument.Save(path, loginUsers);
+        }
     }
 
     private static void RestoreLoginUsersVdf(string path, CachedSteamLoginAccount account)
@@ -227,17 +280,66 @@ internal sealed class SteamConfigService
 
     private static void UpdateLocalVdf(string path, string accountCrc32, string encryptedJwt)
     {
-        var local = VdfDocument.LoadOrEmpty(path);
-        var connectCache = EnsurePath(
-            local,
-            "MachineUserConfigStore",
-            "Software",
-            "Valve",
-            "Steam",
-            "ConnectCache");
+        if (!File.Exists(path) || FileLength(path) == 0)
+        {
+            var local = new Dictionary<string, object>(StringComparer.Ordinal);
+            var connectCache = EnsurePath(local, "MachineUserConfigStore", "Software", "Valve", "Steam", "ConnectCache");
+            connectCache[accountCrc32] = encryptedJwt;
+            VdfDocument.Save(path, local);
+            return;
+        }
 
-        connectCache[accountCrc32] = encryptedJwt;
-        VdfDocument.Save(path, local);
+        try
+        {
+            string text = File.ReadAllText(path, System.Text.Encoding.UTF8);
+
+            var match = System.Text.RegularExpressions.Regex.Match(text, @"(?i)""ConnectCache""\s*\{");
+            if (match.Success)
+            {
+                int insertPos = match.Index + match.Length;
+                string crcPattern = $@"""{accountCrc32}""\s*""([^""]*)""";
+                if (System.Text.RegularExpressions.Regex.IsMatch(text, crcPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                {
+                    text = System.Text.RegularExpressions.Regex.Replace(
+                        text, 
+                        crcPattern, 
+                        $"\"{accountCrc32}\"\t\t\"{encryptedJwt}\"", 
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                }
+                else
+                {
+                    string injection = $"\n\t\t\t\t\t\t\"{accountCrc32}\"\t\t\"{encryptedJwt}\"";
+                    text = text.Insert(insertPos, injection);
+                }
+                File.WriteAllText(path, text, new System.Text.UTF8Encoding(false));
+            }
+            else
+            {
+                var steamMatch = System.Text.RegularExpressions.Regex.Match(text, @"(?i)""Steam""\s*\{");
+                if (steamMatch.Success)
+                {
+                    int insertPos = steamMatch.Index + steamMatch.Length;
+                    string injection = $"\n\t\t\t\t\t\"ConnectCache\"\n\t\t\t\t\t{{\n\t\t\t\t\t\t\"{accountCrc32}\"\t\t\"{encryptedJwt}\"\n\t\t\t\t\t}}";
+                    text = text.Insert(insertPos, injection);
+                    File.WriteAllText(path, text, new System.Text.UTF8Encoding(false));
+                }
+                else
+                {
+                    var local = VdfDocument.LoadOrEmpty(path);
+                    var connectCache = EnsurePath(local, "MachineUserConfigStore", "Software", "Valve", "Steam", "ConnectCache");
+                    connectCache[accountCrc32] = encryptedJwt;
+                    VdfDocument.Save(path, local);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn($"Safe injection to local.vdf failed: {ex.Message}");
+            var local = VdfDocument.LoadOrEmpty(path);
+            var connectCache = EnsurePath(local, "MachineUserConfigStore", "Software", "Valve", "Steam", "ConnectCache");
+            connectCache[accountCrc32] = encryptedJwt;
+            VdfDocument.Save(path, local);
+        }
     }
 
     private static Dictionary<string, object> EnsurePath(
