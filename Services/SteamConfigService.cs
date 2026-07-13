@@ -104,26 +104,53 @@ internal sealed class SteamConfigService
 
     private static void UpdateConfigVdf(string path, string accountName, string steamId, bool keepOtherAccounts)
     {
-        // 修复：如果不清除其他账号，则不要每次覆盖 config.vdf，否则会清除其他账号的保存密码和用户设置！
-        // 仅在 config.vdf 完全不存在时，才写入一个最小化模板。
-        if (keepOtherAccounts && File.Exists(path) && FileLength(path) > 0)
+        if (!keepOtherAccounts)
         {
+            var config = new Dictionary<string, object>(StringComparer.Ordinal);
+            var steamObj = EnsurePath(config, "InstallConfigStore", "Software", "Valve", "Steam");
+            steamObj["AutoUpdateWindowEnabled"] = "0";
+            steamObj["MTBF"] = Random.Shared.Next(100000000, 999999999).ToString();
+            var accountsObj = EnsureObject(steamObj, "Accounts");
+            accountsObj[accountName] = new Dictionary<string, object> { ["SteamID"] = steamId };
+            VdfDocument.Save(path, config);
             return;
         }
 
-        var config = new Dictionary<string, object>(StringComparer.Ordinal);
-        var steam = EnsurePath(config, "InstallConfigStore", "Software", "Valve", "Steam");
-
-        steam["AutoUpdateWindowEnabled"] = "0";
-        steam["MTBF"] = Random.Shared.Next(100000000, 999999999).ToString();
-
-        var accounts = EnsureObject(steam, "Accounts");
-        accounts[accountName] = new Dictionary<string, object>
+        if (!File.Exists(path) || FileLength(path) == 0)
         {
-            ["SteamID"] = steamId
-        };
+            var config = new Dictionary<string, object>(StringComparer.Ordinal);
+            var steamObj = EnsurePath(config, "InstallConfigStore", "Software", "Valve", "Steam");
+            steamObj["AutoUpdateWindowEnabled"] = "0";
+            steamObj["MTBF"] = Random.Shared.Next(100000000, 999999999).ToString();
+            var accountsObj = EnsureObject(steamObj, "Accounts");
+            accountsObj[accountName] = new Dictionary<string, object> { ["SteamID"] = steamId };
+            VdfDocument.Save(path, config);
+            return;
+        }
 
-        VdfDocument.Save(path, config);
+        try
+        {
+            string text = File.ReadAllText(path, System.Text.Encoding.UTF8);
+            
+            string accountPattern = $@"""{System.Text.RegularExpressions.Regex.Escape(accountName)}""\s*\{{";
+            if (System.Text.RegularExpressions.Regex.IsMatch(text, accountPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                return;
+            }
+
+            var match = System.Text.RegularExpressions.Regex.Match(text, @"(?i)""Accounts""\s*\{");
+            if (match.Success)
+            {
+                int insertPos = match.Index + match.Length;
+                string injection = $"\n\t\t\t\t\t\"{accountName}\"\n\t\t\t\t\t{{\n\t\t\t\t\t\t\"SteamID\"\t\t\"{steamId}\"\n\t\t\t\t\t}}";
+                text = text.Insert(insertPos, injection);
+                File.WriteAllText(path, text, new System.Text.UTF8Encoding(false));
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn($"Safe injection to config.vdf failed: {ex.Message}");
+        }
     }
 
     private static void UpdateRegistryAutoLogin(string accountName)
