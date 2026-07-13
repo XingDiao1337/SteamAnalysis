@@ -56,6 +56,7 @@ namespace SteamAnalysisAvalonia
             this.picLogo = new System.Windows.Forms.PictureBox();
             this.btnRepo = new System.Windows.Forms.Button();
             this.btnCard = new System.Windows.Forms.Button();
+            this.lblWatermark = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.grpBasic.SuspendLayout();
@@ -334,12 +335,22 @@ namespace SteamAnalysisAvalonia
             this.btnCard.UseVisualStyleBackColor = true;
             this.btnCard.Click += new System.EventHandler(this.btnCard_Click);
 
+            // lblWatermark
+            this.lblWatermark.AutoSize = true;
+            this.lblWatermark.Location = new System.Drawing.Point(30, 420);
+            this.lblWatermark.Name = "lblWatermark";
+            this.lblWatermark.Size = new System.Drawing.Size(200, 17);
+            this.lblWatermark.TabIndex = 7;
+            this.lblWatermark.Text = "作者：小司大王喵(QQ935939605)";
+            this.lblWatermark.ForeColor = System.Drawing.Color.Gray;
+
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(694, 490);
+            this.Controls.Add(this.lblWatermark);
             this.Controls.Add(this.btnCard);
             this.Controls.Add(this.btnRepo);
             this.Controls.Add(this.picLogo);
@@ -410,5 +421,6 @@ namespace SteamAnalysisAvalonia
         private System.Windows.Forms.PictureBox picLogo;
         private System.Windows.Forms.Button btnRepo;
         private System.Windows.Forms.Button btnCard;
+        private System.Windows.Forms.Label lblWatermark;
     }
 }
