@@ -49,16 +49,16 @@ cd SteamAnalysis
 **选项 A: 打包为免环境版 (体积较大，约 108MB)**
 *包含完整的 .NET 运行库，用户的电脑上不需要安装任何东西就能直接双击运行。*
 ```cmd
-dotnet publish SteamAnalysisAvalonia.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\Publish_Standalone
+dotnet publish SteamAnalysisAvalonia.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\no_.net
 ```
 
 **选项 B: 打包为框架依赖极限缩小版 (体积极小，约 1.3MB)**
 *体积非常小，但要求运行该软件的用户电脑上必须提前安装好 .NET 9.0 桌面运行时环境。*
 ```cmd
-dotnet publish SteamAnalysisAvalonia.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o .\Publish_Tiny
+dotnet publish SteamAnalysisAvalonia.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o .\yes_.net
 ```
 
-编译完成后，你的 `.exe` 程序将分别出现在 `Publish_Standalone` 或 `Publish_Tiny` 文件夹中。
+编译完成后，你的 `.exe` 程序将分别出现在 `no_.net` 或 `yes_.net` 文件夹中。
 
 ---
 
